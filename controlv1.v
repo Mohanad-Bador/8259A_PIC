@@ -156,6 +156,88 @@ module Controlyyy_Logic (
 	wire end_of_acknowledge_sequence = ((control_state != POLL) & (control_state != CTL_READY)) & (next_control_state == CTL_READY);
 	wire end_of_poll_command = ((control_state == POLL) & (control_state != CTL_READY)) & (next_control_state == CTL_READY);
 
-    // TODO
+	
+  // Initialization command word 1
+
+	always @(posedge write_icw_1) begin
+    	   // IC4 bit
+    	   set_icw4_config <= internal_data_bus[0];
+    	   // SNGL bit
+        single_or_cascade_config <= internal_data_bus[1];
+    	   // LTIM bit
+				level_or_edge_toriggered_config <= internal_data_bus[3];
+	end
+		
+	// Initialization command word 2
+
+	always @(posedge write_icw_2)begin
+        //T7-T3 (8086, 8088)
+				interrupt_vector_address[4:0] = internal_data_bus[7:3];
+	end
+
+	// Initialization command word 3
+
+	always @(posedge write_icw_3) begin
+	     	// S7-S0 (MASTER) or ID2-ID0 (SLAVE)
+			  cascade_device_config = internal_data_bus;
+	end
+	
+	// Initialization command word 4
+	
+	always @(posedge write_icw_4) begin
+	     //Automatic end of interrupt
+       auto_eoi_config <= internal_data_bus[1];
+	     //Master/slave
+	     buffered_master_or_slave_config <= internal_data_bus[2];
+	     //special fully nested mode
+			 special_fully_nest_config <= internal_data_bus[4];     
+  end
+  
+  // Operation control word 1
+
+  always @(posedge write_ocw_1_registers) begin
+        // Interrupt Mask registers
+        interrupt_mask = internal_data_bus;
+    // No need for an "else" statement here as the default condition is to keep the existing value
+  end
+  
+  //operation control word 2
+  
+	//End of interrupt mode 	
+	always @(*) begin
+		if ((auto_eoi_config == 1'b1) && (end_of_acknowledge_sequence == 1'b1))
+			end_of_interrupt = acknowledge_interrupt;
+		else if (write_ocw_2 == 1'b1)
+			casez (internal_data_bus[6:5])
+				2'b01: end_of_interrupt = highest_level_in_service;
+				2'b11: end_of_interrupt = num2bit(internal_data_bus[2:0]);
+				default: end_of_interrupt = 8'b00000000;
+			endcase
+		else
+			end_of_interrupt = 8'b00000000;
+	end
+	
+	//Auto rotate mode 
+	always @(posedge write_ocw_2) begin
+			casez (internal_data_bus[7:5])
+				3'b000: auto_rotate_mode <= 1'b0;
+				3'b100: auto_rotate_mode <= 1'b1;
+				default: auto_rotate_mode <= auto_rotate_mode;
+			endcase
+	end
+	
+	// Rotation
+	always @(*)begin
+		if ((auto_rotate_mode == 1'b1) && (end_of_acknowledge_sequence == 1'b1))
+			priority_rotate <= bit2num(acknowledge_interrupt);
+		else if (write_ocw_2 == 1'b1)begin
+			casez (internal_data_bus[7:5])
+				3'b101: priority_rotate <= bit2num(highest_level_in_service);
+				3'b11z: priority_rotate <= internal_data_bus[2:0];
+				default: priority_rotate <= priority_rotate;
+			endcase
+		end
+  end
+  
 
 endmodule
