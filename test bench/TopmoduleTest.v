@@ -666,7 +666,7 @@ module PIC8259A_TB;
     initial begin
         TASK_INIT();
       // TASK_8086_NORMAL_INTERRUPT_TEST();
-      //TASK_AUTO_EOI_TEST();
+      TASK_AUTO_EOI_TEST();
       //TASK_NON_SPECIFIC_EOI_TEST();
       //TASK_EDGE_TORIGGER_TEST();
       //TASK_LEVEL_TORIGGER_TEST();

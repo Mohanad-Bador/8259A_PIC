@@ -25,7 +25,7 @@ module P8259IC(
 	wire write_operation_control_word_3;
 	wire read;
 	
-	Read_write_Bus Bus_Control_Logic(
+	Data_bus_buffer_Read_write_Logic Bus_Control_Logic(
 		.chip_select(chip_select_n),
 		.read_enable(read_enable_n),
 		.write_enable(write_enable_n),
@@ -89,7 +89,7 @@ module P8259IC(
 
 	);
 	wire [7:0] interrupt_request_register;
-	IRRRRR irr(
+	interrupt_request_reg irr(
 		.level_or_edge_triggered_flag(level_or_edge_toriggered_config),
 		.freeze(freeze),
 		.clear_interrupt_request(clear_interrupt_request),
